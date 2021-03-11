@@ -13,8 +13,8 @@ function _init()
 	clear_move_opt()
 
  k={
- 	x=4,
- 	y=5,
+		x=ceil(rnd(8)),
+		y=ceil(rnd(8)),
  	selected=false,
  	draw=function(self)
  		local s = 16
@@ -31,11 +31,19 @@ function _init()
  	on_select=function(self)
  		self.selected= not self.selected
  		if self.selected then
- 			move_opt[self.x][self.y]=true
- 			move_opt[self.x-1][self.y]=true
- 			move_opt[self.x+1][self.y]=true
-	 		move_opt[self.x][self.y-1]=true
-	 		move_opt[self.x][self.y+1]=true
+ 			if self.x > 1 then
+ 					move_opt[self.x-1][self.y]=true
+				end
+				if self.x < board_w then
+					move_opt[self.x+1][self.y]=true
+				end
+				if self.y > 1 then
+					move_opt[self.x][self.y-1]=true
+				end
+				if self.y < board_h then
+					move_opt[self.x][self.y+1]=true
+				end
+ 			move_opt[self.x][self.y]=true	 	
 			else
 				clear_move_opt()
  		end
