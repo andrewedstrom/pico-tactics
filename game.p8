@@ -4,51 +4,18 @@ __lua__
 local c_x = 3
 local c_y = 4
 local t = 0
-local k
 local move_opt
+local selected
 local board_w=8
 local board_h=8
+local entities
 
 function _init()
-	clear_move_opt()
+	move_opt = new_board()
+	entities = new_board()
 
- k={
-		x=ceil(rnd(8)),
-		y=ceil(rnd(8)),
- 	selected=false,
- 	draw=function(self)
- 		local s = 16
- 		if t % 30 > 15 then
- 			s = 17
-			end
-			local y_o = 0
-			if (self.selected) then
-				y_o=1
-			end
-			spr(18,self.x*8,self.y*8)
- 		spr(s,self.x*8,self.y*8-y_o)
- 	end,
- 	on_select=function(self)
- 		self.selected= not self.selected
- 		if self.selected then
- 			if self.x > 1 then
- 					move_opt[self.x-1][self.y]=true
-				end
-				if self.x < board_w then
-					move_opt[self.x+1][self.y]=true
-				end
-				if self.y > 1 then
-					move_opt[self.x][self.y-1]=true
-				end
-				if self.y < board_h then
-					move_opt[self.x][self.y+1]=true
-				end
- 			move_opt[self.x][self.y]=true	 	
-			else
-				clear_move_opt()
- 		end
- 	end
- }
+	make_knight(2,4)
+	make_knight(5,5)
 end
 
 function _update60()
@@ -59,10 +26,38 @@ function _update60()
 	if (btnp(3)) c_y += 1
 	c_x = mid(1, c_x, 8)
 	c_y = mid(1, c_y, 8)
-	if btnp(❎) and c_x==k.x and c_y==k.y then
-		k:on_select()
+	if btnp(❎) then
+		local new_selection=false
+		forall_entites(function(e)
+			--selecting
+			if c_x==e.x and c_y==e.y then
+				if not selected then
+					selected=e
+					e:move_opt()
+				else
+					selected=nil
+					move_opt = new_board()
+				end
+				new_selection=true
+			end
+		end)
+		--move
+		if not new_selection then
+			if move_opt[c_x][c_y] then
+				--move
+				entities[selected.x][selected.y] = false
+				selected.x=c_x
+				selected.y=c_y
+				entities[c_x][c_y]=selected
+				selected=nil
+				move_opt = new_board()
+			else
+				--deselect
+				selected = nil
+				move_opt = new_board()
+			end
+		end
 	end
-	
 end
 
 function _draw()
@@ -70,12 +65,14 @@ function _draw()
 	local row,col
 	for row=1,board_w do
 		for col=1,board_h do
-			local colr=(k.selected and move_opt[row][col] and 11) or 3
+			local colr=move_opt[row][col] and 11 or 3
 			rectfill(row * 8, col * 8, row * 8 + 6, col * 8 + 6, colr)
 		end
 	end	
 	
-	k:draw()
+	forall_entites(function(e)
+		e:draw()
+	end)
 
 	local c_s=2
 	local ta = t % 48
@@ -86,17 +83,69 @@ function _draw()
 		c_s=4
 	end
 	spr(c_s, c_x * 8+3, c_y * 8+3)
-	
+end
+-->8
+--utils
+
+-- makes a new, empty, map-size
+-- grid
+function new_board(def)
+	def=def or false
+	b={}
+	for row=1,board_w do
+		b[row]={}
+		for col=1,board_h do
+			b[row][col]=false
+		end
+	end
+	return b
 end
 
-function clear_move_opt()
-	move_opt={}
-	for row=1,8 do
-		move_opt[row]={}
-		for col=1,8 do
-			move_opt[row][col]=false
+function forall_entites(callback)
+	for row=1,board_w do
+		for col=1,board_h do
+			local e = entities[row][col]
+			if e then
+				callback(e)
+			end
 		end
-	end	
+	end
+end
+-->8
+--entities
+
+function make_knight(x,y)
+	entities[x][y] = {
+		x=x,
+		y=y,
+ 	draw=function(self)
+ 		local s = 16
+ 		if t % 30 > 15 then
+ 			s = 17
+			end
+			local y_o = 0
+			if selected and selected.x==self.x and selected.y==self.y then
+				y_o=1
+			end
+			spr(18,self.x*8,self.y*8)
+ 		spr(s,self.x*8,self.y*8-y_o)
+ 	end,
+ 	move_opt=function(self)
+			--todo improve this shit
+			if self.x > 1 then
+					move_opt[self.x-1][self.y]=true
+			end
+			if self.x < board_w then
+				move_opt[self.x+1][self.y]=true
+			end
+			if self.y > 1 then
+				move_opt[self.x][self.y-1]=true
+			end
+			if self.y < board_h then
+				move_opt[self.x][self.y+1]=true
+			end
+ 	end
+ }
 end
 __gfx__
 00000000770000770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
