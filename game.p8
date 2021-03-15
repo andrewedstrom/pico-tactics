@@ -78,7 +78,14 @@ function _draw()
 	for row=1,board_w do
 		for col=1,board_h do
 			local colr=move_opt[row][col] and 11 or 3
-			rectfill(row * 8, col * 8, row * 8 + 6, col * 8 + 6, colr)
+			local x = row*8
+			local y = col*8
+
+			if c_x == row and c_y == col then
+				rect(x-1,y-1,x+7,y+7,1)
+			end
+
+			rectfill(x, y, x + 6, y + 6, colr)
 		end
 	end
 
@@ -101,6 +108,7 @@ function draw_cursor()
 	elseif ta >= 12 and ta <= 36 then
 		c_s=4
 	end
+
 	spr(c_s, c_x * 8+3, c_y * 8+3)
 end
 
