@@ -22,6 +22,10 @@ end
 
 function _update60()
 	t += 1
+	handle_input()
+end
+
+function handle_input()
 	if (btnp(0)) c_x -= 1
 	if (btnp(1)) c_x += 1
 	if (btnp(2)) c_y -= 1
@@ -29,22 +33,28 @@ function _update60()
 	c_x = mid(1, c_x, 8)
 	c_y = mid(1, c_y, 8)
 	if btnp(❎) then
-		local new_selection=false
+		local selected_changed=false
 		forall_entites(function(e)
-			--selecting
 			if c_x==e.x and c_y==e.y then
-				if not selected then
-					selected=e
-					e:move_opt()
-				else
+				--if cursor is on an entity
+				if selected then
+					if not e:is_selected() and move_opt[e.x][e.y] then
+						sfx(0)
+						e.health -= 1
+					end
+
+					-- deselect
 					selected=nil
 					move_opt = new_board()
+				else
+					selected=e
+					e:move_opt()
 				end
-				new_selection=true
+				selected_changed=true
 			end
 		end)
 		--move
-		if not new_selection then
+		if not selected_changed then
 			if move_opt[c_x][c_y] then
 				--move
 				entities[selected.x][selected.y] = false
@@ -116,6 +126,53 @@ end
 -->8
 --entities
 
+function make_entity(x,y,health,props)
+	local e = {
+		kind = kind,
+		x = x,
+		y = y,
+		a_o = ceil(rnd(15)), -- animation offset
+		health = health,
+		draw = function()
+		end,
+		update = function()
+		end,
+		draw_shadow = function(self)
+			spr(18,self.x*8,self.y*8)
+		end,
+		move_opt=function(self)
+			--todo improve this shit
+			--todo make dependent on range
+			if self.x > 1 then
+				move_opt[self.x-1][self.y]=true
+			end
+			if self.x < board_w then
+				move_opt[self.x+1][self.y]=true
+			end
+			if self.y > 1 then
+				move_opt[self.x][self.y-1]=true
+			end
+			if self.y < board_h then
+				move_opt[self.x][self.y+1]=true
+			end
+		end,
+		is_selected=function(self)
+			return selected and selected.x==self.x and selected.y==self.y
+		end,
+		draw_health=function(self)
+			print(self.health, self.x * 8 + 2, self.y * 8 - 7, 7)
+		end
+	}
+
+	-- add aditional object properties
+	for k, v in pairs(props) do
+		e[k] = v
+	end
+
+	entities[x][y] = e
+	return e
+end
+
 function make_knight(x,y)
 	make_entity(x,y,5,{
 		x=x,
@@ -123,7 +180,7 @@ function make_knight(x,y)
 		draw=function(self)
 			local s = 16
 			local y_o = 0
-			if selected and selected.x==self.x and selected.y==self.y then
+			if self:is_selected() then
 				y_o=1
 			elseif (t + self.a_o) % 30 > 15 then
 				s = 17
@@ -150,49 +207,6 @@ function make_ghost(x,y)
 	})
 end
 
-function make_entity(x,y,health,props)
-	local e = {
-		kind = kind,
-		x = x,
-		y = y,
-		a_o = ceil(rnd(15)), -- animation offset
-		health = health,
-		draw = function()
-		end,
-		update = function()
-		end,
-		draw_shadow = function(self)
-			spr(18,self.x*8,self.y*8)
-		end,
-		move_opt=function(self)
-			--todo improve this shit
-			if self.x > 1 then
-				move_opt[self.x-1][self.y]=true
-			end
-			if self.x < board_w then
-				move_opt[self.x+1][self.y]=true
-			end
-			if self.y > 1 then
-				move_opt[self.x][self.y-1]=true
-			end
-			if self.y < board_h then
-				move_opt[self.x][self.y+1]=true
-			end
-		end,
-		draw_health=function(self)
-			print(self.health,self.x*8+2,self.y*8-7,7)
-		end
-	}
-
-	-- add aditional object properties
-	for k, v in pairs(props) do
-		e[k] = v
-	end
-
-	entities[x][y] = e
-	return e
-end
-
 __gfx__
 00000000770000770000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000700000070000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -210,3 +224,5 @@ __gfx__
 fcccc0404cccc4f01111110000222202000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 05565000f55650400111100020222004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 04004000040040000000000002220004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+__sfx__
+000100002705027050270502705027050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
