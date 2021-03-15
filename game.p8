@@ -40,7 +40,7 @@ function handle_input()
 				if selected then
 					if not e:is_selected() and move_opt[e.x][e.y] then
 						sfx(0)
-						e.health -= 1
+						e:lose_health(selected.power)
 					end
 
 					-- deselect
@@ -131,6 +131,7 @@ function make_entity(x,y,health,props)
 		kind = kind,
 		x = x,
 		y = y,
+		power = 1,
 		a_o = ceil(rnd(15)), -- animation offset
 		health = health,
 		draw = function()
@@ -139,6 +140,13 @@ function make_entity(x,y,health,props)
 		end,
 		draw_shadow = function(self)
 			spr(18,self.x*8,self.y*8)
+		end,
+		lose_health = function(self, amt)
+			self.health -= amt
+			if self.health <= 0 then
+				--die
+				entities[self.x][self.y] = false
+			end
 		end,
 		move_opt=function(self)
 			--todo improve this shit
@@ -160,7 +168,11 @@ function make_entity(x,y,health,props)
 			return selected and selected.x==self.x and selected.y==self.y
 		end,
 		draw_health=function(self)
-			print(self.health, self.x * 8 + 2, self.y * 8 - 7, 7)
+			-- print(self.health, self.x * 8 + 2, self.y * 8 - 7, 7)
+			local i
+			for i = 1,self.health*2,2 do
+				pset(self.x * 8 + i,self.y * 8 - 3, 8)
+			end
 		end
 	}
 
@@ -174,7 +186,7 @@ function make_entity(x,y,health,props)
 end
 
 function make_knight(x,y)
-	make_entity(x,y,5,{
+	make_entity(x,y,3,{
 		x=x,
 		y=y,
 		draw=function(self)
