@@ -120,9 +120,9 @@ end
 function draw_hud()
 	-- selected
 	local x, y = 4, 80
-	if selected then
-		char_preview(entities[selected.x][selected.y], "selected", x, y)
-	end
+	-- if selected then
+	-- 	char_preview(entities[selected.x][selected.y], "selected", x, y)
+	-- end
 
 	-- cursor
 	local e = entities[c_x][c_y]
@@ -131,8 +131,23 @@ function draw_hud()
 			char_preview(e, "select?", x, y)
 		elseif not e:is_selected() and move_opt[e.x][e.y] then
 			-- could attack
-			x = 127 - 37
-			char_preview(e, "attack? ", x, y)
+			-- x = 127 - 37
+			-- char_preview(e, "attack? ", x, y)
+			rect(x-3,y-3,127,y+18,7)
+
+			print("attack ", x, y, 7)
+			spr(e.s,x+28,y)
+			for i = 1,e.health do
+				print("\135",x+16+6*i,y+10,8)
+			end
+
+			print("with ", x+42,y,7)
+			local sel = entities[selected.x][selected.y]
+			spr(sel.s, x+62,y)
+			for i = 1,sel.health do
+				print("\135",x+50+6*i,y+10,8)
+			end
+			print("?",x+76,y,7)
 		end
 	end
 end
