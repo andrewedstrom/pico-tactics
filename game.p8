@@ -9,7 +9,7 @@ local selected
 local board_w=8
 local board_h=8
 local entities
--- teams are 1 and 2
+local teams={"player", "cpu"}
 
 function _init()
 	move_opt = new_board()
@@ -35,16 +35,21 @@ function handle_input()
 	if btnp(❎) then
 		local selected_changed=false
 		forall_entites(function(e)
-			if c_x==e.x and c_y==e.y then
+			if c_x==e.x and c_y==e.y and not selected_changed then
 				--if cursor is on an entity
 				if selected then
 					if not e:is_selected() and move_opt[e.x][e.y] then
+						-- attack
 						sfx(0)
 						e:lose_health(selected.power)
+
+						--cursor teleports back to selected sprite
+						c_x=selected.x
+						c_y=selected.y
 					end
 
 					-- deselect
-					selected=nil
+					selected = nil
 					move_opt = new_board()
 				else
 					selected=e
@@ -114,20 +119,25 @@ end
 
 function draw_hud()
 	-- selected
-	local x,y=4,80
+	local x, y = 4, 80
 	if selected then
-		char_preview(selected, "selected: ", x, y)
+		char_preview(entities[selected.x][selected.y], "selected", x, y)
 	end
 
 	-- cursor
-	x=127-37
 	local e = entities[c_x][c_y]
-	if e and not e:is_selected() then
-		char_preview(e, "cursor: ", x, y)
+	if e then
+		if not selected then
+			char_preview(e, "select?", x, y)
+		elseif not e:is_selected() and move_opt[e.x][e.y] then
+			-- could attack
+			x = 127 - 37
+			char_preview(e, "attack? ", x, y)
+		end
 	end
 end
 
-function char_preview(e,text,x,y)
+function char_preview(e, text, x, y)
 	rect(x-3,y-3,x+36,y+18,7)
 	print(text, x, y, 7)
 	spr(e.s,x,y+8)
@@ -212,13 +222,6 @@ function make_entity(x,y,health,props)
 		end,
 		is_selected=function(self)
 			return selected and selected.x==self.x and selected.y==self.y
-		end,
-		draw_health=function(self)
-			local i
-			local x, y = self.x * 8, self.y * 8 - 3
-			for i = 1,self.health*2,2 do
-				pset(x + i,y, 8)
-			end
 		end
 	}
 
@@ -246,7 +249,6 @@ function make_knight(x,y)
 			end
 			self:draw_shadow()
 			spr(s,self.x*8,self.y*8-y_o-1)
-			-- self:draw_health()
 		end
 	})
 end
@@ -261,7 +263,6 @@ function make_ghost(x,y)
 			end
 			local x, y = self.x*8, self.y*8-y_o-1
 			spr(self.s,x,y)
-			-- self:draw_health()
 		end
 	})
 end
