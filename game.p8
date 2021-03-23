@@ -135,19 +135,20 @@ function draw_hud()
 			-- char_preview(e, "attack? ", x, y)
 			rect(x-3,y-3,127,y+18,7)
 
-			print("attack ", x, y, 7)
-			spr(e.s,x+28,y)
-			for i = 1,e.health do
-				print("\135",x+16+6*i,y+10,8)
+			x = print("attack ", x, y, 7)
+			spr(e.s, x, y)
+
+			for i = -1,e.health-2 do
+				print("\135",x+6*i,y+10,8)
 			end
 
-			print("with ", x+42,y,7)
+			x = print(" with ", x+9, y, 7)
 			local sel = entities[selected.x][selected.y]
-			spr(sel.s, x+62,y)
-			for i = 1,sel.health do
-				print("\135",x+50+6*i,y+10,8)
+			spr(sel.s, x, y)
+			for i = -1,sel.health-2 do
+				print("\135",x+6*i,y+10,8)
 			end
-			print("?",x+76,y,7)
+			print(" ?",x+9,y,7)
 		end
 	end
 end
