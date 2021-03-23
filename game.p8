@@ -18,6 +18,7 @@ function _init()
 	make_knight(4,4)
 	make_knight(4,5)
 	make_ghost(4,6)
+	make_ghost(5,6)
 end
 
 function _update60()
@@ -36,6 +37,10 @@ function handle_input()
 		local selected_changed=false
 		forall_entites(function(e)
 			if c_x==e.x and c_y==e.y and not selected_changed then
+				if e.has_moved then
+					sfx(1)
+					return
+				end
 				--if cursor is on an entity
 				if selected then
 					if not e:is_selected() and move_opt[e.x][e.y] then
@@ -46,6 +51,7 @@ function handle_input()
 						--cursor teleports back to selected sprite
 						c_x=selected.x
 						c_y=selected.y
+						selected.has_moved=true
 					end
 
 					-- deselect
@@ -66,6 +72,7 @@ function handle_input()
 				selected.x=c_x
 				selected.y=c_y
 				entities[c_x][c_y]=selected
+				selected.has_moved=true
 				selected=nil
 				move_opt = new_board()
 			else
@@ -206,6 +213,7 @@ function make_entity(x,y,health,props)
 		power = 1,
 		max_health=3,
 		health = health,
+		has_moved=false,
 		draw = function()
 		end,
 		update = function()
@@ -264,7 +272,12 @@ function make_knight(x,y)
 				s = 17
 			end
 			self:draw_shadow()
+			if self.has_moved then
+				pal(12,13)
+				pal(5,1)
+			end
 			spr(s,self.x*8,self.y*8-y_o-1)
+			pal()
 		end
 	})
 end
@@ -278,7 +291,11 @@ function make_ghost(x,y)
 				y_o=1
 			end
 			local x, y = self.x*8, self.y*8-y_o-1
+			if self.has_moved then
+				pal(7,13)
+			end
 			spr(self.s,x,y)
+			pal()
 		end
 	})
 end
@@ -302,3 +319,4 @@ fcccc0404cccc4f01111110000777707000000000000000000000000000000000000000000000000
 04004000040040000000000007770004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 000100002705027050270502705027050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+4b0100000a5500a550095500653004530005200654000520005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500005000050000500
