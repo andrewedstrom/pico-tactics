@@ -10,10 +10,12 @@ local board_w=8
 local board_h=8
 local entities
 local teams={"player", "cpu"}
+local current_team
 
 function _init()
 	move_opt = new_board()
 	entities = new_board()
+	current_team=1
 
 	make_knight(4,4)
 	make_knight(4,5)
@@ -22,7 +24,7 @@ function _init()
 end
 
 function _update60()
-	t += 1
+	t += 1 --todo is there something built in for this?
 	handle_input()
 end
 
@@ -34,39 +36,9 @@ function handle_input()
 	c_x = mid(1, c_x, 8)
 	c_y = mid(1, c_y, 8)
 	if btnp(❎) then
-		local selected_changed=false
-		forall_entites(function(e)
-			if c_x==e.x and c_y==e.y and not selected_changed then
-				if e.has_moved then
-					sfx(1)
-					return
-				end
-				--if cursor is on an entity
-				if selected then
-					if not e:is_selected() and move_opt[e.x][e.y] then
-						-- attack
-						sfx(0)
-						e:lose_health(selected.power)
-
-						--cursor teleports back to selected sprite
-						c_x=selected.x
-						c_y=selected.y
-						selected.has_moved=true
-					end
-
-					-- deselect
-					selected = nil
-					move_opt = new_board()
-				else
-					selected=e
-					e:move_opt()
-				end
-				selected_changed=true
-			end
-		end)
-		--move
+		local selected_changed = handle_entity_selection()
 		if not selected_changed then
-			if move_opt[c_x][c_y] then
+			if move_opt[c_x][c_y] and not entities[c_x][c_y] then
 				--move
 				entities[selected.x][selected.y] = false
 				selected.x=c_x
@@ -82,6 +54,43 @@ function handle_input()
 			end
 		end
 	end
+end
+
+function handle_entity_selection()
+	local selected_changed = false
+	forall_entites(function(e)
+		if c_x==e.x and c_y==e.y and not selected_changed then
+			if e.has_moved then
+				sfx(1)
+				return
+			end
+			--if cursor is on an entity
+			if selected then
+				if not e:is_selected() and move_opt[e.x][e.y] then
+					-- attack
+					sfx(0)
+					e:lose_health(selected.power)
+
+					--cursor teleports back to selected sprite
+					c_x=selected.x
+					c_y=selected.y
+					selected.has_moved=true
+				end
+
+				-- deselect
+				selected = nil
+				move_opt = new_board()
+			elseif e.team == current_team then
+				selected=e
+				e:move_opt()
+			else
+				-- can't select this
+				return
+			end
+			selected_changed=true
+		end
+	end)
+	return selected_changed
 end
 
 function _draw()
@@ -130,6 +139,8 @@ function draw_hud()
 	-- if selected then
 	-- 	char_preview(entities[selected.x][selected.y], "selected", x, y)
 	-- end
+	local whose_turn = teams[current_team].."'s turn"
+	print(whose_turn, 64 - #whose_turn * 2, 1, 7)
 
 	-- cursor
 	local e = entities[c_x][c_y]
@@ -205,7 +216,7 @@ end
 -->8
 --entities
 
-function make_entity(x,y,health,props)
+function make_entity(kind,team,x,y,health,props)
 	local e = {
 		kind = kind,
 		x = x,
@@ -214,6 +225,7 @@ function make_entity(x,y,health,props)
 		max_health=3,
 		health = health,
 		has_moved=false,
+		team = team,
 		draw = function()
 		end,
 		update = function()
@@ -259,7 +271,7 @@ function make_entity(x,y,health,props)
 end
 
 function make_knight(x,y)
-	make_entity(x,y,3,{
+	make_entity("knight",1,x,y,3,{
 		x=x,
 		y=y,
 		s=16,
@@ -274,7 +286,11 @@ function make_knight(x,y)
 			self:draw_shadow()
 			if self.has_moved then
 				pal(12,13)
+				pal(1,0)
 				pal(5,1)
+				pal(4,2)
+				pal(9,4)
+				pal(15,9)
 			end
 			spr(s,self.x*8,self.y*8-y_o-1)
 			pal()
@@ -283,7 +299,7 @@ function make_knight(x,y)
 end
 
 function make_ghost(x,y)
-	make_entity(x, y, 3, {
+	make_entity("ghost",2,x, y, 3, {
 		s=19,
 		draw=function(self)
 			local y_o = 0
@@ -310,10 +326,10 @@ __gfx__
 00000000700000070001717100111110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000770000770001111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00550060000000000000000007777004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-05999060005500600000000000777704000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-09191060059990600000000000717104000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-04fff050091910600000000070777704000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-4cccc4f004fff0500111100007771774000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05555060005500600000000000777704000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05151060055550600000000000717104000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+05fff050051510600000000070777704000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+4cccc4f005fff0500111100007771774000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 fcccc0404cccc4f01111110000777707000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 05565000f55650400111100070777004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 04004000040040000000000007770004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
