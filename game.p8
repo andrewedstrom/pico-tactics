@@ -11,11 +11,13 @@ local board_h=8
 local entities
 local teams={"player", "cpu"}
 local current_team
+local game_over
 
 function _init()
 	move_opt = new_board()
 	entities = new_board()
 	current_team=1
+	game_over = false
 
 	make_knight(4,4)
 	make_knight(4,5)
@@ -41,11 +43,13 @@ function handle_input()
 			if move_opt[c_x][c_y] and not entities[c_x][c_y] then
 				--move
 				entities[selected.x][selected.y] = false
-				selected.x=c_x
-				selected.y=c_y
-				entities[c_x][c_y]=selected
-				selected.has_moved=true
-				selected=nil
+				selected.x = c_x
+				selected.y = c_y
+				entities[c_x][c_y] = selected
+				selected.has_moved = true
+				check_turn_end()
+				check_game_over()
+				selected = nil
 				move_opt = new_board()
 			else
 				--deselect
@@ -60,13 +64,13 @@ function handle_entity_selection()
 	local selected_changed = false
 	forall_entites(function(e)
 		if c_x==e.x and c_y==e.y and not selected_changed then
-			if e.has_moved then
+			if e.has_moved and not e:is_selected() then
 				sfx(1)
 				return
 			end
 			--if cursor is on an entity
 			if selected then
-				if not e:is_selected() and move_opt[e.x][e.y] then
+				if not e:is_selected() and move_opt[e.x][e.y] and e.team != selected.team then
 					-- attack
 					sfx(0)
 					e:lose_health(selected.power)
@@ -75,6 +79,9 @@ function handle_entity_selection()
 					c_x=selected.x
 					c_y=selected.y
 					selected.has_moved=true
+					check_turn_end()
+					check_game_over()
+
 				end
 
 				-- deselect
@@ -91,6 +98,37 @@ function handle_entity_selection()
 		end
 	end)
 	return selected_changed
+end
+
+function check_turn_end()
+	local current_team_is_done = true
+	forall_entites(function(e)
+		if e.team == current_team and not e.has_moved then
+			current_team_is_done = false
+		end
+	end)
+	if current_team_is_done then
+		forall_entites(function(e)
+			e.has_moved = false
+		end)
+		current_team = current_team % #teams + 1
+	end
+end
+
+function check_game_over()
+	-- check if game over
+	local i
+	for i = 1, 2 do
+		local entities_left_on_team = 0
+		forall_entites(function(e)
+			if e.team == i then
+				entities_left_on_team+=1
+			end
+		end)
+		if entities_left_on_team == 0 then
+			game_over = true
+		end
+	end
 end
 
 function _draw()
@@ -140,7 +178,11 @@ function draw_hud()
 	-- 	char_preview(entities[selected.x][selected.y], "selected", x, y)
 	-- end
 	local whose_turn = teams[current_team].."'s turn"
-	print(whose_turn, 64 - #whose_turn * 2, 1, 7)
+	print(whose_turn, 64 - #whose_turn * 2, 2, 7)
+
+	if game_over then
+		print("game over",60,90,7)
+	end
 
 	-- cursor
 	local e = entities[c_x][c_y]
@@ -192,20 +234,20 @@ end
 -- makes a new, empty, map-size
 -- grid
 function new_board(def)
-	def=def or false
-	b={}
-	for row=1,board_w do
-		b[row]={}
-		for col=1,board_h do
-			b[row][col]=false
+	def = def or false
+	b = {}
+	for row = 1, board_w do
+		b[row] = {}
+		for col = 1, board_h do
+			b[row][col] = false
 		end
 	end
 	return b
 end
 
 function forall_entites(callback)
-	for row=1,board_w do
-		for col=1,board_h do
+	for row=1, board_w do
+		for col=1, board_h do
 			local e = entities[row][col]
 			if e then
 				callback(e)
@@ -271,11 +313,11 @@ function make_entity(kind,team,x,y,health,props)
 end
 
 function make_knight(x,y)
-	make_entity("knight",1,x,y,3,{
-		x=x,
-		y=y,
-		s=16,
-		draw=function(self)
+	make_entity("knight", 1, x, y, 3, {
+		x = x,
+		y = y,
+		s = 16,
+		draw = function(self)
 			local s = self.s
 			local y_o = 0
 			if self:is_selected() then
@@ -285,32 +327,32 @@ function make_knight(x,y)
 			end
 			self:draw_shadow()
 			if self.has_moved then
-				pal(12,13)
-				pal(1,0)
-				pal(5,1)
-				pal(4,2)
-				pal(9,4)
-				pal(15,9)
+				pal(12, 13)
+				pal(1, 0)
+				pal(5, 1)
+				pal(4, 2)
+				pal(9, 4)
+				pal(15, 9)
 			end
-			spr(s,self.x*8,self.y*8-y_o-1)
+			spr(s,self.x * 8, self.y * 8 - y_o - 1)
 			pal()
 		end
 	})
 end
 
 function make_ghost(x,y)
-	make_entity("ghost",2,x, y, 3, {
-		s=19,
-		draw=function(self)
+	make_entity("ghost", 2, x, y, 1, {
+		s = 19,
+		draw = function(self)
 			local y_o = 0
 			if t % 40 > 20 then
-				y_o=1
+				y_o = 1
 			end
-			local x, y = self.x*8, self.y*8-y_o-1
+			local x, y = self.x * 8, self.y * 8 - y_o - 1
 			if self.has_moved then
-				pal(7,13)
+				pal(7, 13)
 			end
-			spr(self.s,x,y)
+			spr(self.s, x, y)
 			pal()
 		end
 	})
